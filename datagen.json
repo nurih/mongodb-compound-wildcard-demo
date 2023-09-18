@@ -1,0 +1,57 @@
+{
+  "_id": "$inc",
+  "name": "$first",
+  "status": {
+    "$choose": {
+      "from": [
+        "customer",
+        "prospect"
+      ],
+      "weights": [
+        2,
+        1
+      ]
+    }
+  },
+  "contact": {
+    "cell": {
+      "$choose": {
+        "from": [
+          {
+            "$phone": {
+              "country": "uk",
+              "mobile": true
+            }
+          },
+          "$missing"
+        ]
+      }
+    },
+    "email": {
+      "$choose": {
+        "from": [
+          {
+            "$email": {
+              "domain": "what.not"
+            }
+          },
+          "$missing"
+        ]
+      }
+    },
+    "fax": {
+      "$choose": {
+        "from": [
+          {
+            "$phone": {
+              "country": "uk",
+              "mobile": false
+            }
+          },
+          "$missing"
+        ],
+        "weights": [1,5]
+      }
+    }
+  }
+}

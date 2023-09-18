@@ -1,0 +1,30 @@
+
+use('demo');
+
+db.version();
+
+db.prospect.findOne();
+
+// db.prospect.createIndex({ "contact.$**": 1 }, {name: 'idx_single_wild'});
+// db.prospect.dropIndex('idx_single_wild')
+
+db.prospect.createIndex({ "contact.$**": 1, status: 1 }, { name: 'idx_compound_wild' });
+
+
+db.prospect.find({ 'contact.cell': '07408 926850', status: 'customer' }).explain(true);
+
+db.prospect.find({ 'contact.email': 'madtiwvab@what.not', 'contact.fax': '0121 062 9173', status: 'prospect' }).explain(true);
+
+db.prospect.find({ status: 'prospect' }).explain(true);
+
+db.prospect.find({ 'contact.email': 'madtiwvab@what.not', 'contact.fax': '0121 062 9173' }).explain("queryPlanner")
+
+db.prospect.find({
+  'contact.cell': '07404 190465',
+  'contact.email': 'kagaje@what.not',
+  'contact.fax': '01995 364874'
+}).explain("queryPlanner")
+
+db.prospect.stats()
+
+db.adminCommand( { getParameter: '*' })
