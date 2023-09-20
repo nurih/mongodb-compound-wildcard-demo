@@ -25,6 +25,9 @@ db.prospect.find({
   'contact.fax': '01995 364874'
 }).explain("queryPlanner")
 
-db.prospect.stats()
 
-db.adminCommand( { getParameter: '*' })
+// db.prospect.stats()
+
+// db.adminCommand( { getParameter: '*' })
+// "internalQueryPlannerEnableHashIntersection": false,
+// db.adminCommand({setParameter: 1, internalQueryPlannerEnableHashIntersection: true})

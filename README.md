@@ -163,8 +163,6 @@ The query planner shows the following output:
 
 The above is a bit awkward. The `filter` term mentions the `contact.email `field alone. The `indexBounds` field mentions the `contact.fax` field only. Though one might intuit that the strategy is to us the index to scan the index `contact.fax` first, then filter the entries in the index by `contact.email`, it is neither clear that this is the case nor expected. One would expect that the index contains the list of documents under either of the keys, and therefore an AND query would hit the index key structure twice and do some nested loop join or something similar.
 
-> I'm still seeking clarity on these technical points as of writing this document.
-
 Let's try specifying three of the wildcard fields in the index, and see if things become any clearer:
 
 ```javascript
@@ -177,7 +175,7 @@ db.prospect.find({
 ```
 
 
-The plan seems to imply the same general strategy. The index bounds only mention one of the three query terms, then the filter mentions the other two.
+The plan shown below seems to imply the same general strategy. The index bounds only mention one of the three query terms, then the filter mentions the other two.
 
 ```javascript
 "winningPlan": {
@@ -238,4 +236,14 @@ The plan seems to imply the same general strategy. The index bounds only mention
     }
 ```
 
-Alas, neither `db.prospect.stats()` nor `db.prospect.aggregate([{$indexStats:{}}}])` seemed to illuminate this further.
+Well, the plan is not lying. MongoDB does indeed choose only one of the query terms to serve as the value sought in the index. It evaluates the selectivity of the terms in the query, and picks one it deems most suitable.
+
+This still doesn't answer the question _why_ it doesn't compare the other terms agains the index either. Which brings the topic of **index intersection**. MongoDB introduced an implementation of index intersection at some point, then reversed the default implementation of it to a degree that pretty much prevents intersection from every being excercised. Turns out that the performance gains were rather low for the intersection candidates as compared to other strategies. Worse: the planner would often pick intersection in cases where other strategies would have performed way better. In other words: Index intersection turned out to be the wrong answer too often, and would actually *hurt* performance.
+
+But this is a *single index* you say - wouldn't intersection make sense in this particular wildcard scenario? The way I like to think about it, a wildcard index is actually several indexes in a trench-coat pretending to be a single index. Each wildcard field value is processed into it's own index structure, but all of those structures are stored together as one. A hint to this notion is that the planner outputs the `$_path` term, stating which wildcard field within the index is targeted. 
+
+The addition of non-wildcard fields to the index would then shape the key prefixes to contain the additional non-wildcard value so that the index is more selective and the (theoretical) need for intersection is reduced.
+
+## Conclusion
+
+Compound wildcard indexes are a welcome addition to MongoDB 7.0. Having no intersection mechanism doomed many queries to only partially use indexes and resort to loading documents based on a single field, then filtering them further. With this feature, the number of documents loaded can be reduced. Reducing I/O should help many workloads. Whether it does for your workload is subject to - as always - experimintation and monitoring. Give it a try, hope it helps!
